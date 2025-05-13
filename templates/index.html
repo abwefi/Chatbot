@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chatbot</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <section>
+    <!-- Animated grid background -->
+    <!-- 20x20 grid - can adjust this for density -->
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <!-- Repeat or generate more spans if needed -->
+  </section>
+
+  <!-- Chatbot Container -->
+  <div class="container">
+    <div class="chatbox">
+      <h1>Chatbot</h1>
+      <div class="chatlogs" id="chatlogs"></div>
+      <div class="chat-input">
+        <input type="text" id="user-input" placeholder="Type your message here..." />
+        <button type="button" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function sendMessage() {
+      var user_input = $("#user-input").val();
+      if (user_input.trim() === "") return;
+      $.get("/get", { msg: user_input }).done(function(data) {
+        $("#chatlogs").append("<div><b>You:</b> " + user_input + "</div>");
+        $("#chatlogs").append("<div><b>Bot:</b> " + data + "</div>");
+        $("#chatlogs").scrollTop($("#chatlogs")[0].scrollHeight);
+        $("#user-input").val("");
+      });
+    }
+  </script>
+</body>
+</html>
+

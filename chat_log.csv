@@ -1,0 +1,37 @@
+input,response
+Hi,Hello! How can I assist you today?
+What is Python?,Python is a high-level programming language known for its simplicity and versatility.
+Thank you,You're welcome! Let me know if you need more help.
+What is Flask?,Flask is a micro web framework for Python that helps in building web applications quickly.
+Tell me a joke,Why don't skeletons fight each other? They don't have the guts!
+What is a list in Python?,A list in Python is a collection of items that are ordered and changeable.
+How do I install Python?,You can install Python by visiting the official website (https://www.python.org) and downloading the installer for your operating system.
+What is a variable?,A variable in programming is a container for storing data values.
+What is machine learning?,Machine learning is a branch of artificial intelligence where algorithms learn from data to make predictions or decisions.
+Can you explain an API?,An API (Application Programming Interface) allows different software applications to communicate with each other.
+What's your name?,I'm a chatbot here to assist you with your queries.
+How do I write a loop in Python?,You can write a loop using `for` or `while` in Python to repeat actions.
+What is an if statement?,An `if` statement allows you to execute a block of code only if a certain condition is true.
+What's the capital of France?,The capital of France is Paris.
+Tell me something about the moon,The Moon is Earth's only natural satellite and has a significant impact on our planet's tides.
+Can you explain recursion?,Recursion is when a function calls itself in order to solve smaller instances of the same problem.
+What is an algorithm?,An algorithm is a step-by-step procedure or formula for solving a problem.
+What is a dictionary in Python?,A dictionary in Python is a collection of key-value pairs where each key is unique.
+How do I create a function in Python?,You can create a function in Python using the `def` keyword followed by the function name and parameters.
+What is an IDE?,An IDE (Integrated Development Environment) is a software application that provides comprehensive facilities to programmers for software development.
+What is SQL?,SQL (Structured Query Language) is a domain-specific language used in programming and managing relational databases.
+What is the 'self' keyword in Python?,The `self` keyword in Python is used to represent the instance of a class and is used to access the attributes and methods of the class.
+What is JSON?,JSON (JavaScript Object Notation) is a lightweight data-interchange format that is easy to read and write for humans and machines.
+What is Git?,Git is a version control system that helps developers track changes in their codebase and collaborate with others.
+What is a REST API?,A REST API is a type of web service that follows the principles of Representational State Transfer (REST) for interacting with resources over HTTP.
+How do I install Flask?,You can install Flask by running `pip install flask` in your terminal or command prompt.
+What is a web framework?,A web framework is a software framework designed to aid the development of web applications by providing a foundation of tools and libraries.
+What is a decorator in Python?,A decorator is a design pattern in Python that allows you to modify the behavior of a function or method without changing its source code.
+How do I debug a Python program?,You can debug a Python program using built-in tools like `print()` statements or the Python Debugger (`pdb`).
+What is a compiler?,A compiler is a program that translates code written in high-level programming languages into machine code or an intermediate form.
+How do I reverse a string in Python?,You can reverse a string in Python using slicing: `reversed_string = string[::-1]`.
+What is a hash table?,A hash table is a data structure that stores data in key-value pairs and uses a hash function to compute an index for the data.
+What is Python's `map()` function?,The `map()` function applies a given function to all items in an input list (or iterable) and returns an iterator.
+How do I write a Python script?,You can write a Python script by creating a file with the `.py` extension and writing Python code in it.
+What is a Python module?,A Python module is a file containing Python definitions and statements which can be imported and used in other Python programs.
+What is an iterator in Python?,An iterator is an object that implements the iterator protocol and allows you to traverse through all the items in a sequence.
