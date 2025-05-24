@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chatbot</title>
+  <title>NEXUS AI CHATBOT</title>
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
   <section>
-    <!-- Animated grid background -->
-    <!-- 20x20 grid - can adjust this for density -->
+    <!-- Enhanced animated grid background -->
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
@@ -19,33 +18,73 @@
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-    <!-- Repeat or generate more spans if needed -->
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
   </section>
 
   <!-- Chatbot Container -->
   <div class="container">
     <div class="chatbox">
-      <h1>Chatbot</h1>
-      <div class="chatlogs" id="chatlogs"></div>
+      <h1>◉ NEXUS AI ◉</h1>
+      <div class="chatlogs" id="chatlogs">
+        <div><b>SYSTEM:</b> Neural network initialized. Ready for interaction...</div>
+      </div>
       <div class="chat-input">
-        <input type="text" id="user-input" placeholder="Type your message here..." />
-        <button type="button" onclick="sendMessage()">Send</button>
+        <input type="text" id="user-input" placeholder="Enter your query..." />
+        <button type="button" onclick="sendMessage()">⚡ TRANSMIT</button>
       </div>
     </div>
   </div>
 
   <script>
+    // Enhanced JavaScript with typing effects
     function sendMessage() {
       var user_input = $("#user-input").val();
       if (user_input.trim() === "") return;
-      $.get("/get", { msg: user_input }).done(function(data) {
-        $("#chatlogs").append("<div><b>You:</b> " + user_input + "</div>");
-        $("#chatlogs").append("<div><b>Bot:</b> " + data + "</div>");
-        $("#chatlogs").scrollTop($("#chatlogs")[0].scrollHeight);
-        $("#user-input").val("");
-      });
+      
+      // Add user message immediately
+      $("#chatlogs").append("<div><b>USER:</b> " + user_input + "</div>");
+      $("#user-input").val("");
+      
+      // Add typing indicator
+      $("#chatlogs").append("<div class='typing-indicator' id='typing'><b>NEXUS:</b> Processing neural pathways</div>");
+      $("#chatlogs").scrollTop($("#chatlogs")[0].scrollHeight);
+      
+      // Simulate processing delay for realism
+      setTimeout(function() {
+        $.get("/get", { msg: user_input }).done(function(data) {
+          $("#typing").remove();
+          $("#chatlogs").append("<div><b>NEXUS:</b> " + data + "</div>");
+          $("#chatlogs").scrollTop($("#chatlogs")[0].scrollHeight);
+        }).fail(function() {
+          $("#typing").remove();
+          $("#chatlogs").append("<div><b>SYSTEM:</b> Neural network connection failed. Please retry.</div>");
+          $("#chatlogs").scrollTop($("#chatlogs")[0].scrollHeight);
+        });
+      }, 1500);
     }
+
+    // Allow Enter key to send message
+    $("#user-input").keypress(function(e) {
+      if (e.which == 13) {
+        sendMessage();
+      }
+    });
+
+    // Add some interactive effects
+    $(document).ready(function() {
+      // Random grid animations
+      setInterval(function() {
+        $("section span").eq(Math.floor(Math.random() * $("section span").length))
+          .addClass("pulse")
+          .delay(2000)
+          .queue(function() {
+            $(this).removeClass("pulse").dequeue();
+          });
+      }, 3000);
+    });
   </script>
 </body>
 </html>
-

@@ -1,27 +1,237 @@
 import csv
 import random
+import string
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 from flask import Flask, render_template, request
+import re
+import pickle
+import os
 
 app = Flask(__name__)
 
-# Load intents from the updated CSV
-def load_intents():
-    intents = []
-    with open('chat_log.csv', mode='r', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            intents.append({
-                "input": row["input"],
-                "response": row["response"]
-            })
-    return intents
+# Download required NLTK data
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+try:
+    nltk.data.find('corpora/wordnet')
+except LookupError:
+    nltk.download('wordnet')
 
-# Function to get bot response
-def get_response(user_input, intents):
-    for intent in intents:
-        if intent['input'].lower() in user_input.lower():
-            return random.choice([intent['response']])
-    return "I'm sorry, I don't understand that. Can you rephrase?"
+class AdvancedChatbot:
+    def __init__(self):
+        self.lemmatizer = WordNetLemmatizer()
+        self.stop_words = set(stopwords.words('english'))
+        self.vectorizer = TfidfVectorizer(max_features=1000, lowercase=True, stop_words='english')
+        self.intents = []
+        self.responses = []
+        self.intent_vectors = None
+        self.fallback_responses = [
+            "I'm still learning. Could you rephrase that?",
+            "That's an interesting question. Can you provide more context?",
+            "I'm not quite sure about that. Try asking differently.",
+            "My neural networks are processing... Could you be more specific?",
+            "I don't have sufficient data on that topic. What else can I help with?",
+            "Let me think... Can you elaborate on your question?",
+            "That's beyond my current knowledge base. Ask me something else!",
+            "I'm constantly evolving. That query needs more training data.",
+        ]
+        self.greeting_patterns = [
+            r'\b(hi|hello|hey|greetings|good morning|good afternoon|good evening)\b',
+            r'\b(how are you|how\'s it going|what\'s up)\b',
+            r'\b(nice to meet you|pleasure to meet you)\b'
+        ]
+        self.goodbye_patterns = [
+            r'\b(bye|goodbye|see you|farewell|exit|quit)\b',
+            r'\b(thank you|thanks|thx)\b',
+            r'\b(good night|good day)\b'
+        ]
+        self.load_intents()
+        self.train_model()
+
+    def preprocess_text(self, text):
+        """Advanced text preprocessing"""
+        # Convert to lowercase
+        text = text.lower()
+        
+        # Remove punctuation and special characters
+        text = re.sub(r'[^\w\s]', '', text)
+        
+        # Tokenize
+        tokens = word_tokenize(text)
+        
+        # Remove stopwords and lemmatize
+        processed_tokens = [
+            self.lemmatizer.lemmatize(token) 
+            for token in tokens 
+            if token not in self.stop_words and len(token) > 2
+        ]
+        
+        return ' '.join(processed_tokens)
+
+    def load_intents(self):
+        """Load and preprocess training data"""
+        with open('chat_log.csv', mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                processed_input = self.preprocess_text(row["input"])
+                if processed_input:  # Only add non-empty processed inputs
+                    self.intents.append(processed_input)
+                    self.responses.append(row["response"])
+
+    def train_model(self):
+        """Train the TF-IDF vectorizer"""
+        if self.intents:
+            self.intent_vectors = self.vectorizer.fit_transform(self.intents)
+            # Save the trained model
+            self.save_model()
+
+    def save_model(self):
+        """Save trained model to avoid retraining"""
+        try:
+            with open('chatbot_model.pkl', 'wb') as f:
+                pickle.dump({
+                    'vectorizer': self.vectorizer,
+                    'intent_vectors': self.intent_vectors,
+                    'intents': self.intents,
+                    'responses': self.responses
+                }, f)
+        except Exception as e:
+            print(f"Could not save model: {e}")
+
+    def load_model(self):
+        """Load pre-trained model if available"""
+        try:
+            if os.path.exists('chatbot_model.pkl'):
+                with open('chatbot_model.pkl', 'rb') as f:
+                    data = pickle.load(f)
+                    self.vectorizer = data['vectorizer']
+                    self.intent_vectors = data['intent_vectors']
+                    self.intents = data['intents']
+                    self.responses = data['responses']
+                return True
+        except Exception as e:
+            print(f"Could not load model: {e}")
+        return False
+
+    def calculate_similarity(self, user_input, threshold=0.3):
+        """Calculate cosine similarity between user input and training data"""
+        processed_input = self.preprocess_text(user_input)
+        
+        if not processed_input:
+            return None, 0
+        
+        # Transform user input using the fitted vectorizer
+        user_vector = self.vectorizer.transform([processed_input])
+        
+        # Calculate similarities
+        similarities = cosine_similarity(user_vector, self.intent_vectors)[0]
+        
+        # Find the best match
+        best_match_idx = np.argmax(similarities)
+        best_similarity = similarities[best_match_idx]
+        
+        if best_similarity >= threshold:
+            return best_match_idx, best_similarity
+        
+        return None, best_similarity
+
+    def handle_patterns(self, user_input):
+        """Handle specific patterns like greetings and goodbyes"""
+        user_input_lower = user_input.lower()
+        
+        # Check for greetings
+        for pattern in self.greeting_patterns:
+            if re.search(pattern, user_input_lower):
+                greetings = [
+                    "Hello! I'm NEXUS AI. How can I assist you today?",
+                    "Greetings, human! What information do you seek?",
+                    "Hi there! I'm ready to help with your queries.",
+                    "Welcome! My neural networks are at your service.",
+                    "Hello! What can I process for you today?"
+                ]
+                return random.choice(greetings)
+        
+        # Check for goodbyes
+        for pattern in self.goodbye_patterns:
+            if re.search(pattern, user_input_lower):
+                goodbyes = [
+                    "Goodbye! Feel free to return when you need assistance.",
+                    "Farewell! It was a pleasure helping you today.",
+                    "See you later! I'll be here when you need me.",
+                    "Until next time! Stay curious!",
+                    "Goodbye! Remember, I'm always learning and improving."
+                ]
+                return random.choice(goodbyes)
+        
+        return None
+
+    def get_response(self, user_input):
+        """Generate response using NLP techniques"""
+        # First check for specific patterns
+        pattern_response = self.handle_patterns(user_input)
+        if pattern_response:
+            return pattern_response
+        
+        # Use similarity matching
+        best_match_idx, similarity = self.calculate_similarity(user_input)
+        
+        if best_match_idx is not None:
+            response = self.responses[best_match_idx]
+            
+            # Add confidence indicator for high similarity matches
+            if similarity > 0.7:
+                confidence_phrases = [
+                    "I'm confident that: ",
+                    "Based on my analysis: ",
+                    "With high certainty: ",
+                    "My neural networks indicate: "
+                ]
+                return random.choice(confidence_phrases) + response
+            elif similarity > 0.5:
+                moderate_phrases = [
+                    "I believe: ",
+                    "It seems that: ",
+                    "Based on available data: ",
+                    "My analysis suggests: "
+                ]
+                return random.choice(moderate_phrases) + response
+            else:
+                return response
+        else:
+            # Smart fallback responses based on input analysis
+            return self.generate_smart_fallback(user_input)
+
+    def generate_smart_fallback(self, user_input):
+        """Generate contextual fallback responses"""
+        user_input_lower = user_input.lower()
+        
+        # Analyze the input for keywords to provide better fallback
+        if any(word in user_input_lower for word in ['python', 'code', 'programming', 'function']):
+            return "I notice you're asking about programming. While I don't have specific information about that, I can help with general Python concepts. Try asking about basic programming terms!"
+        
+        elif any(word in user_input_lower for word in ['what', 'how', 'why', 'when', 'where']):
+            return "That's a great question! I'm still expanding my knowledge base. Could you try rephrasing or asking about something more specific?"
+        
+        elif any(word in user_input_lower for word in ['help', 'assist', 'support']):
+            return "I'm here to help! You can ask me about Python programming, general technology concepts, or try rephrasing your question differently."
+        
+        else:
+            return random.choice(self.fallback_responses)
+
+# Initialize the chatbot
+chatbot = AdvancedChatbot()
 
 @app.route("/")
 def home():
@@ -30,9 +240,24 @@ def home():
 @app.route("/get", methods=["GET", "POST"])
 def chatbot_response():
     user_message = request.args.get('msg')
-    intents = load_intents()
-    bot_response = get_response(user_message, intents)
-    return bot_response
+    if not user_message:
+        return "I didn't receive any input. Please try again."
+    
+    try:
+        bot_response = chatbot.get_response(user_message)
+        return bot_response
+    except Exception as e:
+        return f"Neural network error: {str(e)}. Please try a different query."
+
+@app.route("/train", methods=["POST"])
+def retrain_model():
+    """Endpoint to retrain the model if needed"""
+    try:
+        chatbot.load_intents()
+        chatbot.train_model()
+        return {"status": "success", "message": "Model retrained successfully"}
+    except Exception as e:
+        return {"status": "error", "message": f"Training failed: {str(e)}"}
 
 if __name__ == "__main__":
     app.run(debug=True)
