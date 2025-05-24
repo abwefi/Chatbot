@@ -15,19 +15,21 @@ import os
 
 app = Flask(__name__)
 
-# Download required NLTK data
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('wordnet')
+# Download required NLTK data (updated for newer NLTK versions)
+required_downloads = [
+    ('tokenizers/punkt', 'punkt'),
+    ('tokenizers/punkt_tab', 'punkt_tab'),
+    ('corpora/stopwords', 'stopwords'),
+    ('corpora/wordnet', 'wordnet'),
+    ('corpora/omw-1.4', 'omw-1.4')
+]
+
+for path, name in required_downloads:
+    try:
+        nltk.data.find(path)
+    except LookupError:
+        print(f"Downloading {name}...")
+        nltk.download(name, quiet=True)
 
 class AdvancedChatbot:
     def __init__(self):
@@ -57,11 +59,40 @@ class AdvancedChatbot:
             r'\b(thank you|thanks|thx)\b',
             r'\b(good night|good day)\b'
         ]
+        
+        # Create default training data if CSV doesn't exist
+        self.create_default_training_data()
         self.load_intents()
         self.train_model()
 
+    def create_default_training_data(self):
+        """Create a default CSV file if it doesn't exist"""
+        if not os.path.exists('chat_log.csv'):
+            default_data = [
+                {"input": "What is Python?", "response": "Python is a high-level programming language known for its simplicity and readability."},
+                {"input": "How do I create a function in Python?", "response": "You can create a function using the 'def' keyword followed by the function name and parameters."},
+                {"input": "What is machine learning?", "response": "Machine learning is a subset of AI that enables computers to learn and make decisions from data."},
+                {"input": "Tell me about variables", "response": "Variables are containers that store data values. In Python, you don't need to declare variable types."},
+                {"input": "What is a loop?", "response": "A loop is a programming construct that repeats a block of code until a condition is met."},
+                {"input": "How do I install packages?", "response": "You can install Python packages using pip, for example: pip install package_name"},
+                {"input": "What is debugging?", "response": "Debugging is the process of finding and fixing errors or bugs in your code."},
+                {"input": "Explain data types", "response": "Python has several data types including integers, floats, strings, lists, dictionaries, and booleans."},
+                {"input": "What is an API?", "response": "An API (Application Programming Interface) is a set of protocols for building software applications."},
+                {"input": "How do I handle errors?", "response": "You can handle errors in Python using try-except blocks to catch and manage exceptions."}
+            ]
+            
+            with open('chat_log.csv', 'w', newline='', encoding='utf-8') as file:
+                fieldnames = ['input', 'response']
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(default_data)
+            print("Created default training data (chat_log.csv)")
+
     def preprocess_text(self, text):
         """Advanced text preprocessing"""
+        if not text or not isinstance(text, str):
+            return ""
+            
         # Convert to lowercase
         text = text.lower()
         
@@ -69,33 +100,53 @@ class AdvancedChatbot:
         text = re.sub(r'[^\w\s]', '', text)
         
         # Tokenize
-        tokens = word_tokenize(text)
+        try:
+            tokens = word_tokenize(text)
+        except Exception as e:
+            print(f"Tokenization error: {e}")
+            # Fallback to simple split if tokenization fails
+            tokens = text.split()
         
         # Remove stopwords and lemmatize
-        processed_tokens = [
-            self.lemmatizer.lemmatize(token) 
-            for token in tokens 
-            if token not in self.stop_words and len(token) > 2
-        ]
+        processed_tokens = []
+        for token in tokens:
+            if token not in self.stop_words and len(token) > 2:
+                try:
+                    lemmatized = self.lemmatizer.lemmatize(token)
+                    processed_tokens.append(lemmatized)
+                except Exception as e:
+                    print(f"Lemmatization error for token '{token}': {e}")
+                    processed_tokens.append(token)
         
         return ' '.join(processed_tokens)
 
     def load_intents(self):
         """Load and preprocess training data"""
-        with open('chat_log.csv', mode='r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                processed_input = self.preprocess_text(row["input"])
-                if processed_input:  # Only add non-empty processed inputs
-                    self.intents.append(processed_input)
-                    self.responses.append(row["response"])
+        try:
+            with open('chat_log.csv', mode='r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if 'input' in row and 'response' in row:
+                        processed_input = self.preprocess_text(row["input"])
+                        if processed_input:  # Only add non-empty processed inputs
+                            self.intents.append(processed_input)
+                            self.responses.append(row["response"])
+            print(f"Loaded {len(self.intents)} training examples")
+        except Exception as e:
+            print(f"Error loading training data: {e}")
+            # Add some basic fallback data
+            self.intents = ["hello", "python programming", "help"]
+            self.responses = ["Hello! How can I help?", "I can help with Python!", "I'm here to assist you!"]
 
     def train_model(self):
         """Train the TF-IDF vectorizer"""
         if self.intents:
-            self.intent_vectors = self.vectorizer.fit_transform(self.intents)
-            # Save the trained model
-            self.save_model()
+            try:
+                self.intent_vectors = self.vectorizer.fit_transform(self.intents)
+                self.save_model()
+                print("Model trained successfully")
+            except Exception as e:
+                print(f"Training error: {e}")
 
     def save_model(self):
         """Save trained model to avoid retraining"""
@@ -129,23 +180,26 @@ class AdvancedChatbot:
         """Calculate cosine similarity between user input and training data"""
         processed_input = self.preprocess_text(user_input)
         
-        if not processed_input:
+        if not processed_input or self.intent_vectors is None:
             return None, 0
         
-        # Transform user input using the fitted vectorizer
-        user_vector = self.vectorizer.transform([processed_input])
+        try:
+            # Transform user input using the fitted vectorizer
+            user_vector = self.vectorizer.transform([processed_input])
+            
+            # Calculate similarities
+            similarities = cosine_similarity(user_vector, self.intent_vectors)[0]
+            
+            # Find the best match
+            best_match_idx = np.argmax(similarities)
+            best_similarity = similarities[best_match_idx]
+            
+            if best_similarity >= threshold:
+                return best_match_idx, best_similarity
+        except Exception as e:
+            print(f"Similarity calculation error: {e}")
         
-        # Calculate similarities
-        similarities = cosine_similarity(user_vector, self.intent_vectors)[0]
-        
-        # Find the best match
-        best_match_idx = np.argmax(similarities)
-        best_similarity = similarities[best_match_idx]
-        
-        if best_similarity >= threshold:
-            return best_match_idx, best_similarity
-        
-        return None, best_similarity
+        return None, 0
 
     def handle_patterns(self, user_input):
         """Handle specific patterns like greetings and goodbyes"""
@@ -179,6 +233,9 @@ class AdvancedChatbot:
 
     def get_response(self, user_input):
         """Generate response using NLP techniques"""
+        if not user_input or not isinstance(user_input, str):
+            return "I didn't receive any input. Please try again."
+            
         # First check for specific patterns
         pattern_response = self.handle_patterns(user_input)
         if pattern_response:
@@ -187,7 +244,7 @@ class AdvancedChatbot:
         # Use similarity matching
         best_match_idx, similarity = self.calculate_similarity(user_input)
         
-        if best_match_idx is not None:
+        if best_match_idx is not None and best_match_idx < len(self.responses):
             response = self.responses[best_match_idx]
             
             # Add confidence indicator for high similarity matches
@@ -231,7 +288,9 @@ class AdvancedChatbot:
             return random.choice(self.fallback_responses)
 
 # Initialize the chatbot
+print("Initializing NEXUS AI Chatbot...")
 chatbot = AdvancedChatbot()
+print("Chatbot initialized successfully!")
 
 @app.route("/")
 def home():
@@ -247,6 +306,7 @@ def chatbot_response():
         bot_response = chatbot.get_response(user_message)
         return bot_response
     except Exception as e:
+        print(f"Response generation error: {e}")
         return f"Neural network error: {str(e)}. Please try a different query."
 
 @app.route("/train", methods=["POST"])
@@ -260,4 +320,5 @@ def retrain_model():
         return {"status": "error", "message": f"Training failed: {str(e)}"}
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    print("Starting Flask server...")
+    app.run(debug=True, host='0.0.0.0', port=5000)
